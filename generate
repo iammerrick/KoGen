@@ -1,0 +1,78 @@
+#!/usr/bin/env php
+<?php
+
+require_once(__DIR__.'/lib/cli.php');
+
+/**
+* Kogen
+*/
+class KoGen
+{
+	
+	private $_available_options = array(
+		'c',
+		'methods'
+	);
+	
+	private $_options = array();
+	private $_file = NULL;
+	private $_controller_path;
+	
+	
+	public function __construct()
+	{
+		$this->_controller_path = __DIR__.'/templates/controller/';
+		$this->set_options();
+	}
+	
+	public function set_options()
+	{
+		$this->_options = call_user_func_array(array('CLI', 'options'), $this->_available_options);
+		$this->parse_options();
+	}
+	
+	public function parse_options()
+	{
+		if(isset($this->_options['c']))
+		{
+			// Generating a Controller
+			$class = file_get_contents($this->_controller_path.'class.php');
+			$this->_file = str_replace('{$name}', $this->_options['c'], $class);
+			
+			if(isset($this->_options['methods']))
+			{
+				$methods = $this->parse_methods($this->_options['methods']);
+				
+				$this->_file = str_replace('{$methods}', $methods, $this->_file);
+			}
+		}
+		
+		$this->compile();
+	}
+	
+	private function parse_methods($methods)
+	{
+		$methods_return = NULL;
+		$methods = explode(',', $methods);
+		
+		foreach($methods as $method)
+		{
+			$methods_return .= file_get_contents($this->_controller_path.'methods/'.$method.'.php')."\n\n";
+		}
+		
+		return $methods_return;
+	}
+	
+	public function compile()
+	{
+		echo $this->_file;
+	}
+	
+	public function __destruct()
+	{
+		// Entirely for aesthetics.
+		echo "\n";
+	}
+}
+
+new KoGen();
