@@ -2,6 +2,7 @@
 <?php
 
 require_once(__DIR__.'/lib/cli.php');
+require_once(__DIR__.'/lib/mustache.php');
 
 /**
 * Kogen
@@ -10,18 +11,23 @@ class KoGen
 {
 	
 	private $_available_options = array(
-		'c',
-		'methods'
+		'controller',
+		'methods',
+		'model',
+		'columns'
 	);
 	
 	private $_options = array();
 	private $_file = NULL;
 	private $_controller_path;
-	
+	private $_model_path;
+	private $_mustache;
 	
 	public function __construct()
 	{
 		$this->_controller_path = __DIR__.'/templates/controller/';
+		$this->_model_path = __DIR__.'/templates/model/';
+		$this->_mustache = new Mustache;
 		$this->set_options();
 	}
 	
@@ -33,31 +39,110 @@ class KoGen
 	
 	public function parse_options()
 	{
-		if(isset($this->_options['c']))
+		if(isset($this->_options['controller']))
 		{
 			// Generating a Controller
-			$class = file_get_contents($this->_controller_path.'class.php');
-			$this->_file = str_replace('{$name}', $this->_options['c'], $class);
-			
-			if(isset($this->_options['methods']))
-			{
-				$methods = $this->parse_methods($this->_options['methods']);
-				
-				$this->_file = str_replace('{$methods}', $methods, $this->_file);
-			}
+			$this->parse_controller();		
+		}
+		
+		if(isset($this->_options['model']))
+		{
+			// Generating a Model
+			$this->parse_model();
 		}
 		
 		$this->compile();
 	}
 	
-	private function parse_methods($methods)
+	private function parse_model()
+	{
+		$class = file_get_contents($this->_model_path.'class.php');
+		
+		$meta = NULL;
+		
+		if(isset($this->_options['columns']))
+		{
+			$properties = $this->parse_columns($this->_options['columns'], $this->_model_path);
+		}
+		else
+		{
+			$properties = NULL;
+		}
+		
+		$this->_file = $this->_mustache->render($class, array(
+			'name' => $this->_options['model'],
+			'properties' => $properties
+		));
+	}
+	
+	private function parse_columns($columns, $base)
+	{
+		$columns = explode(' ', $columns);
+		$labels_template = file_get_contents($this->_model_path.'properties/labels.php');
+		$rules_template = file_get_contents($this->_model_path.'properties/rules.php');
+		$labels = NULL;
+		$rules = NULL;
+		
+		foreach($columns as $column)
+		{
+			$column_data = $this->extract_column_data($column);
+			
+			$labels .= "		'".$column_data['name']."' => '".ucfirst($column_data['name'])."'"."\n";
+			$rules	.= "		'".$column_data['name']."' => array(
+			'max_length' => array(".$column_data['params'][0]."),
+			'not_empty'  => NULL
+		),\n";
+		}
+		
+		$labels_template = $this->_mustache->render($labels_template, array(
+			'labels' => $labels
+		));
+		
+		$rules_template = $this->_mustache->render($rules_template, array(
+			'rules'	=> $rules
+		));
+		
+		$labels_template .= $rules_template;
+		
+		return $labels_template;
+	}
+	
+	private function extract_column_data($subject)
+	{
+		preg_match('/^(?P<name>[a-z]+):(?P<type>\w+)($|\((?P<params>(\d+|(.*)))\))/', $subject, $matches);
+		$matches['params'] = explode(',', $matches['params']);
+		
+		return $matches;
+	}
+	
+	private function parse_controller()
+	{
+		// Generating a Controller
+		$class = file_get_contents($this->_controller_path.'class.php');
+	
+		if(isset($this->_options['methods']))
+		{
+			$methods = $this->parse_methods($this->_options['methods'], $this->_controller_path);
+		}
+		else
+		{
+			$methods = NULL;
+		}
+		
+		$this->_file = $this->_mustache->render($class, array(
+			'name' => $this->_options['controller'],
+			'methods' => $methods
+		));
+	}
+	
+	private function parse_methods($methods, $base)
 	{
 		$methods_return = NULL;
 		$methods = explode(',', $methods);
 		
 		foreach($methods as $method)
 		{
-			$methods_return .= file_get_contents($this->_controller_path.'methods/'.$method.'.php')."\n\n";
+			$methods_return .= file_get_contents($base.'methods/'.$method.'.php')."\n\n";
 		}
 		
 		return $methods_return;

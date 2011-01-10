@@ -1,12 +1,12 @@
 <?php defined('SYSPATH') or die('No direct script access.');
 
-class Controller_{$name} extends Controller{
+class Controller_{{name}} extends Controller{
 
 	public function action_index()
 	{
 	
 	}
 	
-{$methods}
+{{{methods}}}
 
-} // End {$name}
+} // End {{name}}
