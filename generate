@@ -14,13 +14,19 @@ class KoGen
 		'controller',
 		'methods',
 		'model',
-		'columns'
+		'columns',
+		'help'
+	);
+
+	private $_available_commands = array(
+		'help'
 	);
 	
 	private $_options = array();
 	private $_file = NULL;
 	private $_controller_path;
 	private $_model_path;
+	private $_compile_path;
 	private $_mustache;
 	
 	public function __construct()
@@ -34,6 +40,8 @@ class KoGen
 	public function set_options()
 	{
 		$this->_options = call_user_func_array(array('CLI', 'options'), $this->_available_options);
+		$this->_commands = call_user_func_array(array('CLI', 'commands'), $this->_available_commands);
+		
 		$this->parse_options();
 	}
 	
@@ -142,7 +150,15 @@ class KoGen
 		
 		foreach($methods as $method)
 		{
-			$methods_return .= file_get_contents($base.'methods/'.$method.'.php')."\n\n";
+			$file = $base.'methods/'.$method.'.php';
+			if(file_exists($file))
+			{
+				$methods_return .= file_get_contents($base.'methods/'.$method.'.php')."\n\n";
+			}
+			else
+			{
+				$methods_return .= $this->_mustache->render(file_get_contents($base.'methods/default.php'), array('name' => $method))."\n\n";
+			}
 		}
 		
 		return $methods_return;

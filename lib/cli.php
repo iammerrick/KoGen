@@ -62,5 +62,32 @@ class CLI {
 
 		return $values;
 	}
+	
+	public static function commands($commands)
+	{
+		$commands = func_get_args();
+		$values = array();
+		
+		for ($i = 1; $i < $_SERVER['argc']; $i++)
+		{
+			if ( ! isset($_SERVER['argv'][$i]))
+			{
+				// No more args left
+				break;
+			}
+
+			// Get the option
+			$cmd = $_SERVER['argv'][$i];
+
+			if (substr($cmd, 0, 2) !== '--' AND in_array($cmd, $commands))
+			{
+				$values[] = $cmd;
+				continue;
+			}
+
+		}
+		
+		return $values;
+	}
 
 } // End CLI
