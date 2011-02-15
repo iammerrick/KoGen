@@ -11,15 +11,16 @@ class KoGen
 {
 	
 	private $_available_options = array(
-		'controller',
 		'methods',
-		'model',
 		'columns',
-		'help'
+		'help',
+		'name'
 	);
 
 	private $_available_commands = array(
-		'help'
+		'help',
+		'controller',
+		'model'
 	);
 	
 	private $_options = array();
@@ -41,19 +42,18 @@ class KoGen
 	{
 		$this->_options = call_user_func_array(array('CLI', 'options'), $this->_available_options);
 		$this->_commands = call_user_func_array(array('CLI', 'commands'), $this->_available_commands);
-		
-		$this->parse_options();
+		$this->parse();
 	}
 	
-	public function parse_options()
+	public function parse()
 	{
-		if(isset($this->_options['controller']))
+		if(in_array('controller', $this->_commands))
 		{
 			// Generating a Controller
 			$this->parse_controller();		
 		}
 		
-		if(isset($this->_options['model']))
+		if(in_array('model', $this->_commands))
 		{
 			// Generating a Model
 			$this->parse_model();
@@ -78,7 +78,7 @@ class KoGen
 		}
 		
 		$this->_file = $this->_mustache->render($class, array(
-			'name' => $this->_options['model'],
+			'name' => $this->_options['name'],
 			'properties' => $properties
 		));
 	}
@@ -138,7 +138,7 @@ class KoGen
 		}
 		
 		$this->_file = $this->_mustache->render($class, array(
-			'name' => $this->_options['controller'],
+			'name' => $this->_options['name'],
 			'methods' => $methods
 		));
 	}
